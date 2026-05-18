@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>툭툭볼 v3.0</title>
+
+<!-- PWA 메타태그 -->
+<meta name="theme-color" content="#0a0a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="툭툭볼">
+<meta name="description" content="공을 터치해서 콤보를 쌓는 터치 게임!">
+
+<!-- PWA 아이콘 (SVG 인라인 → base64로 마니페스트에 포함) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjI0IiBmaWxsPSIjMGEwYTFhIi8+PGNpcmNsZSBjeD0iNjQiIGN5PSI2NCIgcj0iMzYiIGZpbGw9IiNmZjQ0MjIiIG9wYWNpdHk9Ii45Ii8+PHRleHQgeD0iNjQiIHk9IjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZkNzAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+VFQ8L3RleHQ+PC9zdmc+">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Segoe UI',sans-serif;}
+#wrap{
+  position:relative;width:100%;height:100vh;max-width:480px;margin:0 auto;
+  background:linear-gradient(135deg,#0a0a1a 0%,#1a0a2e 50%,#0a1a2e 100%);
+  overflow:hidden;
+}
+.star{position:absolute;border-radius:50%;background:#fff;animation:tw 2s infinite alternate;}
+@keyframes tw{from{opacity:.15}to{opacity:.85}}
+
+#topUI{
+  position:absolute;top:0;left:0;right:0;z-index:10;
+  display:flex;justify-content:space-around;align-items:center;
+  padding:14px 10px;background:rgba(0,0,0,0.45);
+}
+.st-box{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.st-lbl{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:1.5px;text-transform:uppercase;}
+.st-val{font-size:26px;font-weight:800;color:#fff;line-height:1;}
+#comboDisp{
+  position:absolute;top:68px;left:50%;transform:translateX(-50%);
+  font-size:14px;font-weight:700;color:#ffd700;z-index:10;
+  opacity:0;transition:opacity .25s;letter-spacing:2px;white-space:nowrap;
+}
+
+#startSc{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:20;
+  background:rgba(8,8,22,0.9);gap:14px;
+}
+.logo{
+  font-size:52px;font-weight:900;letter-spacing:4px;
+  background:linear-gradient(135deg,#ff8c00,#ffd700,#ff4466);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.logo-sub{font-size:13px;color:rgba(255,255,255,0.4);letter-spacing:3px;}
+#nickInput{
+  padding:10px 18px;border-radius:24px;
+  border:1.5px solid rgba(255,215,0,0.35);
+  background:rgba(255,255,255,0.06);
+  color:#fff;font-size:15px;text-align:center;outline:none;width:200px;
+}
+#nickInput::placeholder{color:rgba(255,255,255,0.25);}
+.desc{font-size:12px;color:rgba(255,255,255,0.35);text-align:center;line-height:2;}
+#startBtn{
+  padding:14px 44px;border:none;border-radius:50px;
+  font-size:19px;font-weight:800;letter-spacing:1px;
+  background:linear-gradient(135deg,#ff3333,#ff8800);
+  color:#fff;cursor:pointer;
+  transition:transform .15s;
+}
+#startBtn:active{transform:scale(.96);}
+
+/* 설치 배너 */
+#installBanner{
+  position:absolute;bottom:0;left:0;right:0;z-index:30;
+  background:linear-gradient(135deg,#1a1a3e,#2a0a2e);
+  border-top:1px solid rgba(255,215,0,0.25);
+  padding:14px 18px;
+  display:none;
+  flex-direction:column;gap:10px;
+}
+.install-top{display:flex;align-items:center;gap:12px;}
+.install-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,#ff4422,#ff8800);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.install-text{flex:1;}
+.install-title{font-size:14px;font-weight:700;color:#fff;}
+.install-sub{font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px;}
+.install-btns{display:flex;gap:8px;}
+#installBtn{
+  flex:1;padding:10px;border:none;border-radius:10px;
+  font-size:14px;font-weight:700;
+  background:linear-gradient(135deg,#ff3333,#ff8800);
+  color:#fff;cursor:pointer;
+}
+#dismissBtn{
+  padding:10px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;
+  font-size:13px;color:rgba(255,255,255,0.5);background:none;cursor:pointer;
+}
+
+/* iOS 설치 안내 */
+#iosBanner{
+  position:absolute;bottom:0;left:0;right:0;z-index:30;
+  background:linear-gradient(135deg,#1a1a3e,#2a0a2e);
+  border-top:1px solid rgba(255,215,0,0.25);
+  padding:16px 18px;display:none;align-items:flex-start;gap:12px;
+}
+.ios-text{flex:1;font-size:13px;color:rgba(255,255,255,0.75);line-height:1.7;}
+.ios-text strong{color:#ffd700;}
+#iosDismiss{
+  background:none;border:none;color:rgba(255,255,255,0.4);
+  font-size:20px;cursor:pointer;padding:0 4px;flex-shrink:0;
+}
+
+#endSc{
+  position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;z-index:20;
+  background:rgba(8,8,22,0.94);gap:10px;
+}
+.end-ttl{font-size:30px;font-weight:800;color:#ffd700;letter-spacing:2px;}
+.end-sc{font-size:58px;font-weight:900;color:#fff;}
+.end-lbl{font-size:13px;color:rgba(255,255,255,0.4);}
+.end-best{font-size:16px;color:#ffd700;font-weight:600;}
+#reBtn{
+  padding:13px 38px;border:none;border-radius:50px;
+  font-size:17px;font-weight:800;
+  background:linear-gradient(135deg,#ff3333,#ff8800);
+  color:#fff;cursor:pointer;margin-top:6px;
+  transition:transform .15s;
+}
+#reBtn:active{transform:scale(.96);}
+
+#lbEnd{width:280px;max-height:180px;overflow-y:auto;margin-top:4px;}
+.lb-row{
+  display:flex;align-items:center;gap:10px;padding:7px 10px;
+  border-radius:8px;margin-bottom:4px;
+  background:rgba(255,255,255,0.05);font-size:13px;color:#fff;
+}
+.lb-row.you{background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.25);}
+.lb-rk{font-size:16px;font-weight:800;width:24px;text-align:center;color:rgba(255,255,255,0.3);}
+.lb-rk.g{color:#ffd700;}.lb-rk.s{color:#c0c0c0;}.lb-rk.b{color:#cd7f32;}
+.lb-nm{flex:1;font-weight:600;}.lb-sc{font-weight:800;}
+
+#ball{
+  width:72px;height:72px;border-radius:50%;
+  position:absolute;display:none;cursor:pointer;z-index:15;
+  box-shadow:0 0 20px rgba(255,160,80,0.4),inset 0 -5px 10px rgba(0,0,0,0.3);
+}
+.particle{position:absolute;border-radius:50%;pointer-events:none;z-index:12;}
+.ht{
+  position:absolute;font-size:16px;font-weight:800;
+  pointer-events:none;z-index:16;
+  animation:fu .7s ease-out forwards;
+}
+@keyframes fu{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-55px) scale(1.35)}}
+
+#muteBtn{
+  position:absolute;bottom:14px;right:14px;z-index:15;
+  width:38px;height:38px;border-radius:50%;border:none;
+  background:rgba(255,255,255,0.1);font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.tw-active #topUI{animation:uf .45s infinite alternate;}
+@keyframes uf{from{background:rgba(0,0,0,.45)}to{background:rgba(160,0,0,.55)}}
+#lbEnd::-webkit-scrollbar{width:3px;}
+#lbEnd::-webkit-scrollbar-thumb{background:rgba(255,215,0,0.3);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="topUI">
+    <div class="st-box">
+      <div class="st-lbl">점수</div>
+      <div class="st-val" id="sv">0</div>
+    </div>
+    <div class="st-box">
+      <div class="st-lbl">🔥 콤보</div>
+      <div class="st-val" id="cv" style="color:#ffd700;">0</div>
+    </div>
+    <div class="st-box">
+      <div class="st-lbl">시간</div>
+      <div class="st-val" id="tv">30</div>
+    </div>
+  </div>
+
+  <div id="comboDisp"></div>
+
+  <div id="startSc">
+    <div class="logo">툭툭볼</div>
+    <div class="logo-sub">TUKTUK BALL v3.0</div>
+    <input id="nickInput" placeholder="닉네임 입력" maxlength="10" value="플레이어"/>
+    <div class="desc">
+      공을 터치해서 점수를 획득하세요!<br>
+      콤보 3+ → x3점 &nbsp;|&nbsp; 콤보 5+ → x5점
+    </div>
+    <button id="startBtn">게임 시작 ▶</button>
+  </div>
+
+  <div id="endSc">
+    <div class="end-ttl">게임 종료!</div>
+    <div class="end-lbl">최종 점수</div>
+    <div class="end-sc" id="fs">0</div>
+    <div class="end-best" id="bs"></div>
+    <div id="lbEnd"></div>
+    <button id="reBtn">다시 시작 ↺</button>
+  </div>
+
+  <div id="ball"></div>
+  <button id="muteBtn">🔊</button>
+
+  <!-- Android 설치 배너 -->
+  <div id="installBanner">
+    <div class="install-top">
+      <div class="install-icon">🎮</div>
+      <div class="install-text">
+        <div class="install-title">툭툭볼 — 앱으로 설치</div>
+        <div class="install-sub">홈 화면에 추가하면 앱처럼 실행돼요!</div>
+      </div>
+    </div>
+    <div class="install-btns">
+      <button id="installBtn">📲 설치하기</button>
+      <button id="dismissBtn">나중에</button>
+    </div>
+  </div>
+
+  <!-- iOS 설치 안내 배너 -->
+  <div id="iosBanner">
+    <div class="ios-text">
+      📲 <strong>앱으로 설치하려면</strong><br>
+      하단 공유 버튼 → <strong>"홈 화면에 추가"</strong> 탭하세요!
+    </div>
+    <button id="iosDismiss">✕</button>
+  </div>
+</div>
+
+<script>
+const wrap=document.getElementById('wrap');
+const ball=document.getElementById('ball');
+const sv=document.getElementById('sv'),cv=document.getElementById('cv'),tv=document.getElementById('tv');
+const comboDisp=document.getElementById('comboDisp');
+const startSc=document.getElementById('startSc'),endSc=document.getElementById('endSc');
+const fs=document.getElementById('fs'),bs=document.getElementById('bs');
+const lbEnd=document.getElementById('lbEnd');
+const nickInput=document.getElementById('nickInput');
+const muteBtn=document.getElementById('muteBtn');
+
+let score=0,timeLeft=30,combo=0,maxCombo=0,running=false,best=0,muted=false;
+let vx=5,vy=-8,bx=100,by=200,timer;
+const B=72;
+let leaderboard=[];
+
+/* ── Stars ── */
+for(let i=0;i<70;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*2.5+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*2}s;animation-duration:${1.5+Math.random()*2.5}s;`;
+  wrap.appendChild(s);
+}
+
+/* ── PWA Install ── */
+let deferredPrompt=null;
+const installBanner=document.getElementById('installBanner');
+const iosBanner=document.getElementById('iosBanner');
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+
+if(!isStandalone){
+  if(isIOS){
+    setTimeout(()=>{iosBanner.style.display='flex';},2000);
+  } else {
+    window.addEventListener('beforeinstallprompt',(e)=>{
+      e.preventDefault();
+      deferredPrompt=e;
+      setTimeout(()=>{installBanner.style.display='flex';},2000);
+    });
+  }
+}
+
+document.getElementById('installBtn').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  installBanner.style.display='none';
+});
+document.getElementById('dismissBtn').addEventListener('click',()=>{installBanner.style.display='none';});
+document.getElementById('iosDismiss').addEventListener('click',()=>{iosBanner.style.display='none';});
+
+/* ── Service Worker (오프라인 캐시) ── */
+if('serviceWorker' in navigator){
+  const swCode=`
+const CACHE='tuktuk-v1';
+self.addEventListener('install',e=>e.waitUntil(
+  caches.open(CACHE).then(c=>c.addAll([self.location.pathname]))
+));
+self.addEventListener('fetch',e=>e.respondWith(
+  caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match(self.location.pathname)))
+));
+`;
+  const blob=new Blob([swCode],{type:'application/javascript'});
+  const swUrl=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(()=>{});
+}
+
+/* ── Web App Manifest (동적 생성) ── */
+const manifest={
+  name:'툭툭볼',
+  short_name:'툭툭볼',
+  description:'공을 터치해서 콤보를 쌓는 터치 게임!',
+  start_url:'.',
+  display:'standalone',
+  orientation:'portrait',
+  background_color:'#0a0a1a',
+  theme_color:'#0a0a1a',
+  icons:[{
+    src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230a0a1a'/%3E%3Ccircle cx='256' cy='240' r='144' fill='%23ff4422'/%3E%3Ccircle cx='220' cy='200' r='40' fill='rgba(255,255,255,0.25)'/%3E%3Ctext x='256' y='420' text-anchor='middle' font-size='90' font-weight='900' fill='%23ffd700' font-family='sans-serif'%3E툭툭볼%3C/text%3E%3C/svg%3E",
+    sizes:'512x512',
+    type:'image/svg+xml',
+    purpose:'any maskable'
+  }]
+};
+const mBlob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+const mUrl=URL.createObjectURL(mBlob);
+const mLink=document.createElement('link');
+mLink.rel='manifest';mLink.href=mUrl;
+document.head.appendChild(mLink);
+
+/* ── Audio ── */
+let audioCtx=null;
+function getCtx(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+function playHit(c){
+  if(muted)return;
+  const ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();
+  o.connect(g);g.connect(ctx.destination);
+  o.type='square';const f=200+c*35;
+  o.frequency.setValueAtTime(f,ctx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(f*1.9,ctx.currentTime+0.07);
+  o.frequency.exponentialRampToValueAtTime(f*0.45,ctx.currentTime+0.2);
+  g.gain.setValueAtTime(0.32,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.24);
+  o.start();o.stop(ctx.currentTime+0.24);
+}
+function playCombo(lvl){
+  if(muted)return;const ctx=getCtx();
+  [440,554,659,880].slice(0,Math.min(lvl,4)).forEach((f,i)=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.value=f;
+    const t=ctx.currentTime+i*0.07;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.26,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.17);
+    o.start(t);o.stop(t+0.19);
+  });
+}
+function playBounce(){
+  if(muted)return;const ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();
+  o.connect(g);g.connect(ctx.destination);
+  o.type='sine';o.frequency.setValueAtTime(115,ctx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(52,ctx.currentTime+0.13);
+  g.gain.setValueAtTime(0.13,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.15);
+  o.start();o.stop(ctx.currentTime+0.16);
+}
+function playStart(){
+  if(muted)return;const ctx=getCtx();
+  [261,329,392,523,659].forEach((f,i)=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='triangle';o.frequency.value=f;
+    const t=ctx.currentTime+i*0.1;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.25,t+0.03);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+    o.start(t);o.stop(t+0.22);
+  });
+}
+function playGameOver(){
+  if(muted)return;const ctx=getCtx();
+  [440,392,349,294,220].forEach((f,i)=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sawtooth';o.frequency.value=f;
+    const t=ctx.currentTime+i*0.17;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.22,t+0.03);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+    o.start(t);o.stop(t+0.3);
+  });
+}
+function playTick(){
+  if(muted)return;const ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();
+  o.connect(g);g.connect(ctx.destination);
+  o.type='sine';o.frequency.value=1100;
+  g.gain.setValueAtTime(0.16,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.07);
+  o.start();o.stop(ctx.currentTime+0.08);
+}
+muteBtn.addEventListener('click',()=>{muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';});
+
+/* ── Ball ── */
+const COLS=[
+  'radial-gradient(circle at 35% 32%,#ffaaaa,#ff1144,#880022)',
+  'radial-gradient(circle at 35% 32%,#aaccff,#1166ff,#002288)',
+  'radial-gradient(circle at 35% 32%,#aaffbb,#11cc44,#005522)',
+  'radial-gradient(circle at 35% 32%,#ffdd88,#ff8800,#883300)',
+  'radial-gradient(circle at 35% 32%,#ddaaff,#8811ee,#440077)',
+  'radial-gradient(circle at 35% 32%,#ffaadd,#ee1188,#770044)',
+  'radial-gradient(circle at 35% 32%,#aaffee,#11ccbb,#006655)',
+];
+function rndColor(){ball.style.background=COLS[Math.floor(Math.random()*COLS.length)];}
+
+/* ── Physics ── */
+let lastBounce=0;
+function physicsLoop(){
+  if(!running)return;
+  const W=wrap.offsetWidth,H=wrap.offsetHeight;
+  bx+=vx;by+=vy;vy+=0.2;
+  if(bx<=0){bx=0;vx*=-0.95;}
+  if(bx+B>=W){bx=W-B;vx*=-0.95;}
+  if(by<=54){by=54;vy*=-0.9;}
+  if(by+B>=H){
+    by=H-B;vy*=-0.88;
+    if(Math.abs(vy)<3)vy=-11;
+    const n=Date.now();
+    if(n-lastBounce>110){playBounce();lastBounce=n;}
+  }
+  ball.style.left=bx+'px';ball.style.top=by+'px';
+  requestAnimationFrame(physicsLoop);
+}
+
+/* ── Particles ── */
+function spark(x,y){
+  for(let i=0;i<11;i++){
+    const p=document.createElement('div');p.className='particle';
+    const sz=3+Math.random()*6,ang=Math.random()*Math.PI*2,dist=30+Math.random()*50;
+    p.style.cssText=`width:${sz}px;height:${sz}px;background:hsl(${Math.random()*360},90%,65%);left:${x}px;top:${y}px;transition:all .48s ease-out;opacity:1;`;
+    wrap.appendChild(p);
+    requestAnimationFrame(()=>{
+      p.style.left=(x+Math.cos(ang)*dist)+'px';
+      p.style.top=(y+Math.sin(ang)*dist)+'px';
+      p.style.opacity='0';
+    });
+    setTimeout(()=>p.remove(),520);
+  }
+}
+function hitText(x,y,pts){
+  const t=document.createElement('div');t.className='ht';
+  const cols=['#fff','#ffd700','#ff8800','#ff44bb','#44ffcc'];
+  t.style.cssText=`left:${x}px;top:${y}px;color:${cols[Math.min(combo,4)]};`;
+  t.textContent='+'+pts+(combo>=3?' 🔥':'');
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(),740);
+}
+
+let comboTimer;
+function hitBall(e){
+  if(!running)return;
+  e.preventDefault();e.stopPropagation();
+  combo++;if(combo>maxCombo)maxCombo=combo;
+  const pts=combo>=5?5:combo>=3?3:1;
+  score+=pts;sv.textContent=score;cv.textContent=combo;
+  playHit(combo);
+  if(combo>=3){playCombo(Math.min(combo,4));comboDisp.textContent=`${combo} 콤보! 🔥`;comboDisp.style.opacity='1';}
+  clearTimeout(comboTimer);
+  comboTimer=setTimeout(()=>{combo=0;cv.textContent=0;comboDisp.style.opacity='0';},1500);
+  spark(bx+B/2,by+B/2);hitText(bx+B/2-12,by-10,pts);
+  vx=(Math.random()*16)-8;vy=-14-Math.min(combo,7)*0.5;
+  rndColor();
+}
+ball.addEventListener('click',hitBall);
+ball.addEventListener('touchstart',hitBall,{passive:false});
+
+/* ── Leaderboard ── */
+function addRecord(nick,sc,mc){
+  const now=new Date();
+  const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  leaderboard.push({nick,sc,mc,t});
+  leaderboard.sort((a,b)=>b.sc-a.sc);
+  try{localStorage.setItem('tt_lb',JSON.stringify(leaderboard.slice(0,20)));}catch(e){}
+}
+function loadLb(){
+  try{const d=localStorage.getItem('tt_lb');if(d)leaderboard=JSON.parse(d);}catch(e){}
+}
+function renderLb(myNick){
+  if(!leaderboard.length){lbEnd.innerHTML='';return;}
+  const rankMark=(i)=>i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+  const rankCls=(i)=>i===0?'g':i===1?'s':i===2?'b':'';
+  lbEnd.innerHTML=leaderboard.slice(0,8).map((e,i)=>`
+    <div class="lb-row${e.nick===myNick?' you':''}">
+      <div class="lb-rk ${rankCls(i)}">${rankMark(i)}</div>
+      <div class="lb-nm">${e.nick}</div>
+      <div class="lb-sc">${e.sc}점</div>
+    </div>`).join('');
+}
+
+/* ── Game ── */
+loadLb();
+function startGame(){
+  getCtx();
+  score=0;timeLeft=30;combo=0;maxCombo=0;
+  sv.textContent=0;tv.textContent=30;cv.textContent=0;
+  comboDisp.style.opacity='0';
+  wrap.classList.remove('tw-active');
+  startSc.style.display='none';endSc.style.display='none';
+  installBanner.style.display='none';iosBanner.style.display='none';
+  ball.style.display='block';
+  bx=120;by=220;vx=5;vy=-8;
+  rndColor();running=true;playStart();physicsLoop();
+  timer=setInterval(()=>{
+    timeLeft--;tv.textContent=timeLeft;
+    if(timeLeft<=10){wrap.classList.add('tw-active');playTick();}
+    if(timeLeft<=0){
+      clearInterval(timer);running=false;ball.style.display='none';
+      wrap.classList.remove('tw-active');playGameOver();
+      if(score>best)best=score;
+      const nick=nickInput.value.trim()||'플레이어';
+      addRecord(nick,score,maxCombo);
+      fs.textContent=score;
+      bs.textContent=`최고: ${best}점 | 콤보: ${maxCombo}`;
+      renderLb(nick);endSc.style.display='flex';
+    }
+  },1000);
+}
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('reBtn').addEventListener('click',()=>{endSc.style.display='none';startSc.style.display='flex';});
+</script>
+</body>
+</html>
